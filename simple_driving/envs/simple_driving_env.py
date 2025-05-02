@@ -58,15 +58,14 @@ class SimpleDrivingEnv(gym.Env):
             steering_angle = steerings[action]
             action = [throttle, steering_angle]
         self.car.apply_action(action)
+        
         for i in range(self._actionRepeat):
             self._p.stepSimulation()
             if self._renders:
                 time.sleep(self._timeStep)
-            
             carpos, carorn = self._p.getBasePositionAndOrientation(self.car.car)
             goalpos, goalorn = self._p.getBasePositionAndOrientation(self.goal_object.goal)
             car_ob = self.getExtendedObservation()
-    
             if self._termination():
                 self.done = True
                 break
