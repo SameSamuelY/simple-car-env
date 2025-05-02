@@ -23,8 +23,8 @@ class SimpleDrivingEnv(gym.Env):
                 low=np.array([-1, -.6], dtype=np.float32),
                 high=np.array([1, .6], dtype=np.float32))
         self.observation_space = gym.spaces.box.Box(
-            low=np.array([-40, -40], dtype=np.float32),
-            high=np.array([40, 40], dtype=np.float32))
+            low=np.array([-40, -40, -40, -40], dtype=np.float32),
+            high=np.array([40, 40, 40, 40], dtype=np.float32))
         self.np_random, _ = gym.utils.seeding.np_random()
 
         if renders:
@@ -46,6 +46,8 @@ class SimpleDrivingEnv(gym.Env):
         self.render_rot_matrix = None
         self.reset()
         self._envStepCounter = 0
+        self.obstacles = []
+        self.collision = False
 
     def step(self, action):
         # Feed action to the car and get observation of car's state
@@ -57,9 +59,9 @@ class SimpleDrivingEnv(gym.Env):
             action = [throttle, steering_angle]
         self.car.apply_action(action)
         for i in range(self._actionRepeat):
-          self._p.stepSimulation()
-          if self._renders:
-            time.sleep(self._timeStep)
+            self._p.stepSimulation()
+            if self._renders:
+                time.sleep(self._timeStep)
 
           carpos, carorn = self._p.getBasePositionAndOrientation(self.car.car)
           goalpos, goalorn = self._p.getBasePositionAndOrientation(self.goal_object.goal)
@@ -70,15 +72,15 @@ class SimpleDrivingEnv(gym.Env):
             break
           self._envStepCounter += 1
 
-        # Compute reward as L2 change in distance to goal
-        # dist_to_goal = math.sqrt(((car_ob[0] - self.goal[0]) ** 2 +
-                                  # (car_ob[1] - self.goal[1]) ** 2))
         dist_to_goal = math.sqrt(((carpos[0] - goalpos[0]) ** 2 +
                                   (carpos[1] - goalpos[1]) ** 2))
         # reward = max(self.prev_dist_to_goal - dist_to_goal, 0)
         reward = -dist_to_goal
         self.prev_dist_to_goal = dist_to_goal
 
+        if self.collision:
+            reward -= 150
+        
         # Done by reaching goal
         if dist_to_goal < 1.5 and not self.reached_goal:
             #print("reached goal")
@@ -112,9 +114,18 @@ class SimpleDrivingEnv(gym.Env):
 
         # Visual element of the goal
         self.goal_object = Goal(self._p, self.goal)
-
+        
         # Get observation to return
         carpos = self.car.get_observation()
+
+        obstacle_path = os.path.join(os.path.dirname(__file__), "..", "resources", "simpleobstacle.urdf")
+        self.obstacles = [
+            self._p.loadURDF(obstacle_path,basePosition=[ 10,  10, 0]),
+            self._p.loadURDF(obstacle_path,basePosition=[-10,  10, 0]),
+            self._p.loadURDF(obstacle_path,basePosition=[ 10, -10, 0]),
+            self._p.loadURDF(obstacle_path,basePosition=[-10, -10, 0])
+        ]
+        self.collsion = False
 
         self.prev_dist_to_goal = math.sqrt(((carpos[0] - self.goal[0]) ** 2 +
                                            (carpos[1] - self.goal[1]) ** 2))
@@ -179,15 +190,29 @@ class SimpleDrivingEnv(gym.Env):
     def getExtendedObservation(self):
         # self._observation = []  #self._racecar.getObservation()
         carpos, carorn = self._p.getBasePositionAndOrientation(self.car.car)
-        goalpos, goalorn = self._p.getBasePositionAndOrientation(self.goal_object.goal)
         invCarPos, invCarOrn = self._p.invertTransform(carpos, carorn)
+        goalpos, goalorn = self._p.getBasePositionAndOrientation(self.goal_object.goal)
         goalPosInCar, goalOrnInCar = self._p.multiplyTransforms(invCarPos, invCarOrn, goalpos, goalorn)
 
-        observation = [goalPosInCar[0], goalPosInCar[1]]
+        closest_obstacle = None
+        min_dist = float('inf')
+        for obs in self.obstacles:
+            obs_pos, obs_orn = self._p.getBasePositionAndOrientation(obs)
+            dist = math.sqrt((carpos[0]-obs_pos[0])**2 + (carpos[1]-obs_pos[1])**2)
+            if dist < min_dist:
+                min_dist = dist
+                closest_obstacle = obs_pos
+        obstacle_PosInCar, obstacle_OrnInCar = self._p.multiplyTransforms(invCarPos, invCarOrn, closest_obstacle, obs_orn)
+
+        if min_dist < 1:
+            self.collsion = True
+            
+        
+        observation = [goalPosInCar[0], goalPosInCar[1],obstacle_PosInCar[0],obstacle_PosInCar[1]]
         return observation
 
     def _termination(self):
-        return self._envStepCounter > 2000
+        return self._envStepCounter > 2000 or self.collsion
 
     def close(self):
         self._p.disconnect()
