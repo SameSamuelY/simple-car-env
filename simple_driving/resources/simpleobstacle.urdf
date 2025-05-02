@@ -2,7 +2,7 @@
 <robot name="simpleobstacle">
     <!-- Colors --> 
     <material name="red">
-        <color rgba="0 0.925 0 1"/>
+        <color rgba="0.925 0 0 1"/>
     </material>
 
     <!-- Goal -->
