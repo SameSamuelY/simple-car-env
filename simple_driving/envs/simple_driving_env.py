@@ -63,13 +63,13 @@ class SimpleDrivingEnv(gym.Env):
             self._p.stepSimulation()
             if self._renders:
                 time.sleep(self._timeStep)
-            carpos, carorn = self._p.getBasePositionAndOrientation(self.car.car)
-            goalpos, goalorn = self._p.getBasePositionAndOrientation(self.goal_object.goal)
-            car_ob = self.getExtendedObservation()
-            if self._termination():
-                self.done = True
-                break
-            self._envStepCounter += 1
+        carpos, carorn = self._p.getBasePositionAndOrientation(self.car.car)
+        goalpos, goalorn = self._p.getBasePositionAndOrientation(self.goal_object.goal)
+        car_ob = self.getExtendedObservation()
+        if self._termination():
+            self.done = True
+            break
+        self._envStepCounter += 1
 
         dist_to_goal = math.sqrt(((carpos[0] - goalpos[0]) ** 2 + (carpos[1] - goalpos[1]) ** 2))
         reward = -dist_to_goal
