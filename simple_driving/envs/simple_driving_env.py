@@ -209,7 +209,7 @@ class SimpleDrivingEnv(gym.Env):
         return observation
 
     def _termination(self):
-        return self._envStepCounter > 2000 or self.collsion
+        return self._envStepCounter > 2000 or self.collision
 
     def close(self):
         self._p.disconnect()
