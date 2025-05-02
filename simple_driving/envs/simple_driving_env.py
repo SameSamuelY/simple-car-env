@@ -62,7 +62,7 @@ class SimpleDrivingEnv(gym.Env):
             self._p.stepSimulation()
             if self._renders:
                 time.sleep(self._timeStep)
-
+            
             carpos, carorn = self._p.getBasePositionAndOrientation(self.car.car)
             goalpos, goalorn = self._p.getBasePositionAndOrientation(self.goal_object.goal)
             car_ob = self.getExtendedObservation()
@@ -72,12 +72,7 @@ class SimpleDrivingEnv(gym.Env):
                 break
             self._envStepCounter += 1
 
-        # Compute reward as L2 change in distance to goal
-        # dist_to_goal = math.sqrt(((car_ob[0] - self.goal[0]) ** 2 +
-                                  # (car_ob[1] - self.goal[1]) ** 2))
-        dist_to_goal = math.sqrt(((carpos[0] - goalpos[0]) ** 2 +
-                                  (carpos[1] - goalpos[1]) ** 2))
-        # reward = max(self.prev_dist_to_goal - dist_to_goal, 0)
+        dist_to_goal = math.sqrt(((carpos[0] - goalpos[0]) ** 2 + (carpos[1] - goalpos[1]) ** 2))
         reward = -dist_to_goal
         self.prev_dist_to_goal = dist_to_goal
 
@@ -90,8 +85,7 @@ class SimpleDrivingEnv(gym.Env):
             self.done = True
             self.reached_goal = True
 
-        ob = car_ob
-        return ob, reward, self.done, dict()
+        return car_ob, reward, self.done, dict()
 
     def seed(self, seed=None):
         self.np_random, seed = gym.utils.seeding.np_random(seed)
@@ -128,7 +122,7 @@ class SimpleDrivingEnv(gym.Env):
             self._p.loadURDF(obstacle_path,basePosition=[ 10, -10, 0]),
             self._p.loadURDF(obstacle_path,basePosition=[-10, -10, 0])
         ]
-        self.collsion = False
+        self.collision = False
 
         self.prev_dist_to_goal = math.sqrt(((carpos[0] - self.goal[0]) ** 2 +
                                            (carpos[1] - self.goal[1]) ** 2))
@@ -208,7 +202,7 @@ class SimpleDrivingEnv(gym.Env):
         obstacle_PosInCar, obstacle_OrnInCar = self._p.multiplyTransforms(invCarPos, invCarOrn, closest_obstacle, obs_orn)
 
         if min_dist < 1:
-            self.collsion = True
+            self.collision = True
             
         
         observation = [goalPosInCar[0], goalPosInCar[1],obstacle_PosInCar[0],obstacle_PosInCar[1]]
