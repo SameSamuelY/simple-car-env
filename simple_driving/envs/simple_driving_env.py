@@ -8,6 +8,7 @@ from simple_driving.resources.plane import Plane
 from simple_driving.resources.goal import Goal
 import matplotlib.pyplot as plt
 import time
+import os
 
 RENDER_HEIGHT = 720
 RENDER_WIDTH = 960
