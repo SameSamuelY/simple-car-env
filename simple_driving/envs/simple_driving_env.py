@@ -71,8 +71,6 @@ class SimpleDrivingEnv(gym.Env):
                     collision_occurred = True
                     break # Exit inner loop (obstacles)
             if collision_occurred:
-                print("Collision!")
-                reward -= 150
                 self.done = True
                 break # Exit outer loop (simulation steps)
             
@@ -88,9 +86,13 @@ class SimpleDrivingEnv(gym.Env):
         dist_to_goal = math.sqrt(((carpos[0] - goalpos[0]) ** 2 + (carpos[1] - goalpos[1]) ** 2))
         reward = -dist_to_goal
         self.prev_dist_to_goal = dist_to_goal
+
+        if collision_occurred:
+            reward -= 150
+            self.done = True
         
         # Done by reaching goal
-        if  not collision_occurred and dist_to_goal < 1.5:
+        if not collision_occurred and dist_to_goal < 1.5:
             if not self.reached_goal:
                 #print("reached goal")
                 reward += 50
