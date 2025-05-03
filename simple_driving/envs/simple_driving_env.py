@@ -48,7 +48,6 @@ class SimpleDrivingEnv(gym.Env):
         self.reset()
         self._envStepCounter = 0
         self.obstacles = []
-        self.collision = False
 
     def step(self, action):
         # Feed action to the car and get observation of car's state
@@ -58,15 +57,29 @@ class SimpleDrivingEnv(gym.Env):
             throttle = fwd[action]
             steering_angle = steerings[action]
             action = [throttle, steering_angle]
+            
         self.car.apply_action(action)
-        
+        collision_occurred = False
         for i in range(self._actionRepeat):
             self._p.stepSimulation()
             if self._renders:
                 time.sleep(self._timeStep)
+
+            for obs_id in self.obstacles:
+                contacts = self._p.getContactPoints(bodyA=self.car.car, bodyB=obs_id)
+                if len(contacts) > 0:
+                    collision_occurred = True
+                    break # Exit inner loop (obstacles)
+            if collision_occurred:
+                #print("Collision!")
+                reward -= 150
+                self.done = True
+                break # Exit outer loop (simulation steps)
+            
             carpos, carorn = self._p.getBasePositionAndOrientation(self.car.car)
             goalpos, goalorn = self._p.getBasePositionAndOrientation(self.goal_object.goal)
             car_ob = self.getExtendedObservation()
+            
             if self._termination():
                 self.done = True
                 break
@@ -75,13 +88,12 @@ class SimpleDrivingEnv(gym.Env):
         dist_to_goal = math.sqrt(((carpos[0] - goalpos[0]) ** 2 + (carpos[1] - goalpos[1]) ** 2))
         reward = -dist_to_goal
         self.prev_dist_to_goal = dist_to_goal
-
-        if self.collision:
-            reward -= 150
         
         # Done by reaching goal
-        if dist_to_goal < 1.5 and not self.reached_goal:
-            #print("reached goal")
+        if  not collision_occured and dist_to_goal < 1.5:
+            if not self.reached_goal:
+                #print("reached goal")
+                reward += 50
             self.done = True
             self.reached_goal = True
 
@@ -99,6 +111,7 @@ class SimpleDrivingEnv(gym.Env):
         Plane(self._p)
         self.car = Car(self._p)
         self._envStepCounter = 0
+        self.obstacles = []
 
         # Set the goal to a random target
         x = (self.np_random.uniform(5, 9) if self.np_random.integers(2) else
@@ -122,7 +135,6 @@ class SimpleDrivingEnv(gym.Env):
             self._p.loadURDF(obstacle_path,basePosition=[ 10, -10, 0]),
             self._p.loadURDF(obstacle_path,basePosition=[-10, -10, 0])
         ]
-        self.collision = False
 
         self.prev_dist_to_goal = math.sqrt(((carpos[0] - self.goal[0]) ** 2 +
                                            (carpos[1] - self.goal[1]) ** 2))
@@ -200,16 +212,13 @@ class SimpleDrivingEnv(gym.Env):
                 min_dist = dist
                 closest_obstacle = obs_pos
         obstacle_PosInCar, obstacle_OrnInCar = self._p.multiplyTransforms(invCarPos, invCarOrn, closest_obstacle, obs_orn)
-
-        if min_dist < 1:
-            self.collision = True
-            
+           
         
         observation = [goalPosInCar[0], goalPosInCar[1],obstacle_PosInCar[0],obstacle_PosInCar[1]]
         return observation
 
     def _termination(self):
-        return self._envStepCounter > 2000 or self.collision
+        return self._envStepCounter > 2000
 
     def close(self):
         self._p.disconnect()
