@@ -71,7 +71,7 @@ class SimpleDrivingEnv(gym.Env):
                     collision_occurred = True
                     break # Exit inner loop (obstacles)
             if collision_occurred:
-                #print("Collision!")
+                print("Collision!")
                 reward -= 150
                 self.done = True
                 break # Exit outer loop (simulation steps)
