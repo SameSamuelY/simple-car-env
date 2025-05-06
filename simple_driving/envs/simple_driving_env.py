@@ -130,10 +130,10 @@ class SimpleDrivingEnv(gym.Env):
 
         obstacle_path = os.path.join(os.path.dirname(__file__), "..", "resources", "simpleobstacle.urdf")
         self.obstacles = [
-            self._p.loadURDF(obstacle_path,basePosition=[ 3,  3, 0]),
+            #self._p.loadURDF(obstacle_path,basePosition=[ 3,  3, 0]),
             #self._p.loadURDF(obstacle_path,basePosition=[-3,  3, 0]),
             #self._p.loadURDF(obstacle_path,basePosition=[ 3, -3, 0]),
-            self._p.loadURDF(obstacle_path,basePosition=[-3, -3, 0])
+            #self._p.loadURDF(obstacle_path,basePosition=[-3, -3, 0])
         ]
 
         self.prev_dist_to_goal = math.sqrt(((carpos[0] - self.goal[0]) ** 2 +
